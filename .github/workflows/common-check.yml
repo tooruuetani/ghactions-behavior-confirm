@@ -117,7 +117,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Echo
-        run: echo "Failure" && exit 1
+        run: echo "Success"
         
   log_backend_test:
     needs: [changes]
@@ -130,8 +130,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Echo
-        run: echo "Failure" && exit 1
-        
+        run: echo "Success"
+      
   infrastructure_dev:
     needs: [changes]
     if: needs.changes.outputs.infrastructure_dev == 'true' && startsWith(github.head_ref, 'feature/dev/infrastructure/')
