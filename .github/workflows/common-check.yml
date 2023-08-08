@@ -185,12 +185,12 @@ jobs:
       - infrastructure_dev
       - infrastructure_stg
       - infrastructure_prod
-    if: contains(needs.*.result, 'cancelled') == false
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Force failure
-        if: failure()
-        run: echo "Failure" && exit 1
+        if: contains(needs.*.result, 'failure') == false && contains(needs.*.result, 'cancelled') == false
+        run: echo "Failed or canceled" && exit 1
       - run: echo "$json"
         env:
           json: ${{ toJSON(needs) }}
