@@ -1,0 +1,175 @@
+name: common-check
+run-name: Common check codes for "${{ github.head_ref }}@${{ github.event.pull_request.head.sha }}"
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      account_backend: ${{ steps.filter.outputs.account_backend }}
+      account_frontend: ${{ steps.filter.outputs.account_frontend }}
+      log_backend: ${{ steps.filter.outputs.log_backend }}
+      infrastructure_dev: ${{ steps.filter.outputs.infrastructure_dev }}
+      infrastructure_stg: ${{ steps.filter.outputs.infrastructure_stg }}
+      infrastructure_prod: ${{ steps.filter.outputs.infrastructure_prod }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            account_backend:
+              - 'account/backend/src/*.py'
+              - 'account/backend/src/**/*.py'
+              - 'account/backend/tests/*.py'
+              - 'account/backend/tests/**/*.py'
+            account_frontend:
+              - 'account/frontend/public/**'
+              - 'account/frontend/src/**'
+              - 'account/frontend/tests/**'
+              - 'account/frontend/index.html'
+            log_backend:
+              - 'log/backend/src/*.py'
+              - 'log/backend/src/**/*.py'
+              - 'log/backend/tests/*.py'
+              - 'log/backend/tests/**/*.py'
+              - 'log/userlib/src/*.py'
+              - 'log/userlib/src/**/*.py'
+              - 'log/userlib/tests/*.py'
+              - 'log/userlib/tests/**/*.py'
+            infrastructure_dev:
+              - 'account/document/webapi.yaml'
+              - 'terraform/envs/dev/**'
+              - 'terraform/modules/**'
+            infrastructure_stg:
+              - 'account/document/webapi.yaml'
+              - 'terraform/envs/stg/**'
+              - 'terraform/modules/**'
+            infrastructure_prod:
+              - 'account/document/webapi.yaml'
+              - 'terraform/envs/prod/**'
+              - 'terraform/modules/**'
+
+  account_frontend_test:
+    needs: [changes]
+    if: needs.changes.outputs.account_frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: account/frontend
+    steps:
+      - name: Echo
+        run: echo "Success"
+
+  account_frontend_lint:
+    needs: [changes]
+    if: needs.changes.outputs.account_frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: account
+    steps:
+      - name: Echo
+        run: echo "Success"
+
+  account_backend_lint:
+    needs: [changes]
+    if: needs.changes.outputs.account_backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: account
+    steps:
+      - name: Echo
+        run: echo "Success"
+
+  account_backend_test:
+    needs: [changes]
+    if: needs.changes.outputs.account_backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: account
+    steps:
+      - name: Echo
+        run: echo "Success"
+
+  log_backend_lint:
+    needs: [changes]
+    if: needs.changes.outputs.log_backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: log
+    steps:
+      - name: Echo
+        run: echo "Failure" && exit 1
+        
+  log_backend_test:
+    needs: [changes]
+    if: needs.changes.outputs.log_backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: log
+    steps:
+      - name: Echo
+        run: echo "Failure" && exit 1
+        
+  infrastructure_dev:
+    needs: [changes]
+    if: needs.changes.outputs.infrastructure_dev == 'true' && startsWith(github.head_ref, 'feature/dev/infrastructure/')
+    permissions: write-all
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/envs/dev
+    steps:
+      - name: Echo
+        run: echo "Success"
+
+  infrastructure_stg:
+    needs: [changes]
+    if: needs.changes.outputs.infrastructure_stg == 'true' && startsWith(github.head_ref, 'feature/stg/infrastructure/')
+    permissions: write-all
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/envs/stg
+    steps:
+      - name: Echo
+        run: echo "Success"
+
+  infrastructure_prod:
+    needs: [changes]
+    if: needs.changes.outputs.infrastructure_prod == 'true' && startsWith(github.head_ref, 'feature/prod/infrastructure/')
+    permissions: write-all
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/envs/prod
+    steps:
+      - name: Echo
+        run: echo "Success"
+
+  check_code:
+    needs:
+      - account_backend_lint
+      - account_backend_test
+      - account_frontend_lint
+      - account_frontend_test
+      - log_backend_lint
+      - log_backend_test
+      - infrastructure_dev
+      - infrastructure_stg
+      - infrastructure_prod
+    if: failure() == false && contains(needs.*.result, 'cancelled') == false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "$json"
+        env:
+          json: ${{ toJSON(needs) }}
